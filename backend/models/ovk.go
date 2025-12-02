@@ -14,7 +14,7 @@ type OVK struct {
 	Date        time.Time `json:"date"`
 	Nama        string    `json:"nama"`
 	Jenis       string    `json:"jenis"`
-	Dosis       string    `json:"dosis"`
+	Dosis       int    `json:"dosis"`
 	Jenis_Dosis string    `json:"jenis_dosis"`
 	Id_Lantai   int       `json:"id_lantai"`
 }
@@ -90,7 +90,7 @@ func CreateOVK(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		query := `INSERT INTO ovk (nama, jenis, dosis, jenis_dosis, id_Lantai) VALUES (?, ?, ?, ?, ?)`
+		query := `INSERT INTO ovk (nama, jenis, dosis, jenis_dosis, id_lantai) VALUES (?, ?, ?, ?, ?)`
 		result, err := db.Exec(query, ovk.Nama, ovk.Jenis, ovk.Dosis, ovk.Jenis_Dosis, ovk.Id_Lantai)
 		if err != nil {
 			http.Error(w, "Gagal menyimpan data OVK: "+err.Error(), http.StatusInternalServerError)

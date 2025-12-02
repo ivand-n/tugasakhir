@@ -129,13 +129,15 @@ func CallbackHandler(db *sql.DB) http.HandlerFunc {
 			log.Println("Error generating token:", err)
 			return
 		}
+		// Tentukan host frontend dari environment variable
+		host := os.Getenv("FRONTEND_HOST")
 
 		// http://localhost:3000
 		// http://chickabroiler.cloud
 		// Redirect ke frontend dengan token sebagai query parameter
 		redirectURL := fmt.Sprintf(
-			"http://localhost:3000/monitoring/callback?token=%s&name=%s&email=%s&picture=%s",
-			jwtToken, userInfo.Name, userInfo.Email, userInfo.Picture,
+			"http://%s/monitoring/callback?token=%s&name=%s&email=%s&picture=%s",
+			host, jwtToken, userInfo.Name, userInfo.Email, userInfo.Picture,
 		)
 		http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 	}

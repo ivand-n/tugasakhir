@@ -24,8 +24,7 @@ type Kandang struct {
 	Tingkat   int    `json:"tingkat"`
 	Kapasitas int    `json:"kapasitas"`
 	Alamat    string `json:"alamat"`
-	Pemilik   string `json:"pemilik"`
-	Status    bool   `json:"status"`
+	Status    int   `json:"status"`
 }
 
 type UserKandang struct {
@@ -205,79 +204,82 @@ func GetIndex(db *sql.DB) http.HandlerFunc {
 }
 
 func GetKandang(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Handle the request and return a response
-		email := r.URL.Query().Get("email")
-		if email == "" {
-			http.Error(w, "Email is required", http.StatusBadRequest)
-			return
-		}
+    return func(w http.ResponseWriter, r *http.Request) {
+        email := r.URL.Query().Get("email")
+        if email == "" {
+            http.Error(w, "Email is required", http.StatusBadRequest)
+            return
+        }
 
-		// Get All Data by email
-		rows, err := db.Query("SELECT * FROM kandang WHERE pemilik = ? AND status = 0", email)
-		if err != nil {
-			log.Println(err)
-		}
-		defer rows.Close()
-		var kandangs []Kandang
-		for rows.Next() {
-			var kandang Kandang
-			if err := rows.Scan(&kandang.ID, &kandang.Nama, &kandang.Tingkat, &kandang.Kapasitas, &kandang.Alamat, &kandang.Pemilik, &kandang.Status); err != nil {
-				log.Println(err)
-			}
-			kandangs = append(kandangs, kandang)
-		}
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-		}
+        rows, err := db.Query("SELECT k.id, k.nama, k.tingkat, k.kapasitas, k.alamat, k.status FROM kandang k JOIN userkandang ku ON k.id = ku.kandang JOIN users u ON ku.email = u.email WHERE u.email = ?", email)
+        if err != nil {
+            log.Println("Query error:", err)
+            http.Error(w, "Failed to query database", http.StatusInternalServerError)
+            return
+        }
+        defer rows.Close()
 
-		// Convert kandangs to JSON and write to response
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(kandangs); err != nil {
-			http.Error(w, "Failed to encode kandangs to JSON", http.StatusInternalServerError)
-			log.Println("Error encoding kandangs to JSON:", err)
-			return
-		}
-	}
+        var kandangs []Kandang
+        for rows.Next() {
+            var kandang Kandang
+            if err := rows.Scan(&kandang.ID, &kandang.Nama, &kandang.Tingkat, &kandang.Kapasitas, &kandang.Alamat, &kandang.Status); err != nil {
+                log.Println("Scan error:", err)
+                continue // Skip row yang error
+            }
+            kandangs = append(kandangs, kandang)
+        }
+
+        if err := rows.Err(); err != nil {
+            log.Println("Rows error:", err)
+        }
+
+        // Jika tidak ada data, kembalikan array kosong bukan null
+        if kandangs == nil {
+            kandangs = []Kandang{}
+        }
+
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusOK)
+        if err := json.NewEncoder(w).Encode(kandangs); err != nil {
+            log.Println("Error encoding kandangs to JSON:", err)
+            http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+        }
+    }
 }
 
 func GetKandangPanen(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Handle the request and return a response
-		email := r.URL.Query().Get("email")
-		if email == "" {
-			http.Error(w, "Email is required", http.StatusBadRequest)
-			return
-		}
+    return func(w http.ResponseWriter, r *http.Request) {
+        email := r.URL.Query().Get("email")
+        if email == "" {
+            http.Error(w, "Email is required", http.StatusBadRequest)
+            return
+        }
 
-		// Get All Data by email
-		rows, err := db.Query("SELECT * FROM kandang WHERE pemilik = ? AND status = 1", email)
-		if err != nil {
-			log.Println(err)
-		}
-		defer rows.Close()
-		var kandangs []Kandang
-		for rows.Next() {
-			var kandang Kandang
-			if err := rows.Scan(&kandang.ID, &kandang.Nama, &kandang.Tingkat, &kandang.Kapasitas, &kandang.Alamat, &kandang.Pemilik, &kandang.Status); err != nil {
-				log.Println(err)
-			}
-			kandangs = append(kandangs, kandang)
-		}
-		if err := rows.Err(); err != nil {
-			log.Println(err)
-		}
+        rows, err := db.Query("SELECT k.id, k.nama, k.tingkat, k.kapasitas, k.alamat, k.status FROM kandang k JOIN userkandang ku ON k.id = ku.kandang JOIN users u ON ku.email = u.email WHERE u.email = ? AND k.status = 1", email)
+        if err != nil {
+            log.Println("Query error:", err)
+            http.Error(w, "Failed to query database", http.StatusInternalServerError)
+            return
+        }
+        defer rows.Close()
 
-		// Convert kandangs to JSON and write to response
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(kandangs); err != nil {
-			http.Error(w, "Failed to encode kandangs to JSON", http.StatusInternalServerError)
-			log.Println("Error encoding kandangs to JSON:", err)
-			return
-		}
-	}
+        var kandangs []Kandang
+        for rows.Next() {
+            var kandang Kandang
+            if err := rows.Scan(&kandang.ID, &kandang.Nama, &kandang.Tingkat, &kandang.Kapasitas, &kandang.Alamat, &kandang.Status); err != nil {
+                log.Println("Scan error:", err)
+                continue
+            }
+            kandangs = append(kandangs, kandang)
+        }
+
+        if kandangs == nil {
+            kandangs = []Kandang{}
+        }
+
+        w.Header().Set("Content-Type", "application/json")
+        json.NewEncoder(w).Encode(kandangs)
+    }
 }
 
 func GetKandangByID(db *sql.DB) http.HandlerFunc {
@@ -336,7 +338,7 @@ func GetKandangByID(db *sql.DB) http.HandlerFunc {
 			Tingkat   int      `json:"tingkat"`
 			Kapasitas int      `json:"kapasitas"`
 			Alamat    string   `json:"alamat"`
-			Status    bool     `json:"status"`
+			Status    int     `json:"status"`
 			Lantai    []Lantai `json:"lantai"`
 		}
 
@@ -545,6 +547,7 @@ func Inisiasi(db *sql.DB) http.HandlerFunc {
 		var requestData struct {
 			Kandang Kandang  `json:"kandang"`
 			Lantai  []Lantai `json:"lantai"`
+			User	User   `json:"user"`
 		}
 
 		// Decode JSON dari request body
@@ -553,6 +556,8 @@ func Inisiasi(db *sql.DB) http.HandlerFunc {
 			log.Println("Error decoding request body:", err)
 			return
 		}
+		email := r.URL.Query().Get("email")
+		log.Println("Request email:", email)
 
 		log.Println("Request data:", requestData)
 
@@ -578,7 +583,8 @@ func Inisiasi(db *sql.DB) http.HandlerFunc {
 
 		//simpan data userkandang
 		queryUserkandang := "INSERT INTO userkandang (email, kandang) VALUES (?, ?)"
-		_, err = tx.Exec(queryUserkandang, requestData.Kandang.Pemilik, kandangID)
+		_, err = tx.Exec(queryUserkandang, email, kandangID)
+		log.Println("Inserting userkandang with email:", email, "and kandangID:", kandangID)
 		if err != nil {
 			tx.Rollback()
 			http.Error(w, "Failed to insert userkandang", http.StatusInternalServerError)

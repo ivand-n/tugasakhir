@@ -22,11 +22,11 @@ func ExportKandangCSV(db *sql.DB) http.HandlerFunc {
 		id_kandang := vars["id_kandang"]
 
 		// Query info kandang
-		var nama, alamat, pemilik string
+		var nama, alamat string
 		var tingkat, kapasitas int
 		var status bool
-		err = db.QueryRow(`SELECT nama, tingkat, kapasitas, alamat, pemilik, status FROM kandang WHERE id = ?`, id_kandang).
-			Scan(&nama, &tingkat, &kapasitas, &alamat, &pemilik, &status)
+		err = db.QueryRow(`SELECT nama, tingkat, kapasitas, alamat, status FROM kandang WHERE id = ?`, id_kandang).
+			Scan(&nama, &tingkat, &kapasitas, &alamat, &status)
 		if err != nil {
 			http.Error(w, "Kandang tidak ditemukan", http.StatusNotFound)
 			return
@@ -41,8 +41,8 @@ func ExportKandangCSV(db *sql.DB) http.HandlerFunc {
 
 		// Tulis info kandang
 		writer.Write([]string{"Data Kandang"})
-		writer.Write([]string{"Nama", "Tingkat", "Kapasitas", "Alamat", "Pemilik", "Status"})
-		writer.Write([]string{nama, strconv.Itoa(tingkat), strconv.Itoa(kapasitas), alamat, pemilik, strconv.FormatBool(status)})
+		writer.Write([]string{"Nama", "Tingkat", "Kapasitas", "Alamat", "Status"})
+		writer.Write([]string{nama, strconv.Itoa(tingkat), strconv.Itoa(kapasitas), alamat, strconv.FormatBool(status)})
 		writer.Write([]string{}) // Baris kosong
 
 		// Query seluruh lantai
